@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Feedback Reports</title>
+
+    <style>
+        body {
+            font-family: Segoe UI;
+            background:#f4f6f9;
+            margin:0;
+        }
+
+        header {
+            background:#2e7d32;
+            color:white;
+            padding:18px 25px;
+            font-size:22px;
+            font-weight:bold;
+        }
+
+        .top-bar {
+            max-width:98%;
+            margin:15px auto 0;
+            display:flex;
+            align-items:center;
+            gap:15px;
+        }
+
+        .top-bar button {
+            padding:8px 18px;
+            background:#9e9e9e;
+            color:white;
+            border:none;
+            border-radius:5px;
+            cursor:pointer;
+        }
+
+        .filters {
+            display:flex;
+            align-items:center;
+            gap:10px;
+            flex-wrap:wrap;
+        }
+
+        select {
+            padding:7px;
+        }
+
+        .filters button {
+            background:#2e7d32;
+        }
+
+        table {
+            width:98%;
+            margin:20px auto;
+            border-collapse:collapse;
+            background:white;
+        }
+
+        th, td {
+            border:1px solid #ccc;
+            padding:8px;
+            font-size:14px;
+        }
+
+        th {
+            background:#2e7d32;
+            color:white;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    Feedback Reports
+</header>
+
+<div class="top-bar">
+
+    <button onclick="goBack()">Back</button>
+
+    <div class="filters">
+        Group:
+        <select id="groupFilter"></select>
+
+        Subject:
+        <select id="subjectFilter">
+            <option value="">All</option>
+            <option>Math</option>
+            <option>Science</option>
+            <option>English</option>
+            <option>Arabic</option>
+            <option>ICT</option>
+            <option>Physics</option>
+            <option>Chemistry</option>
+            <option>Biology</option>
+            <option>History</option>
+            <option>Geography</option>
+        </select>
+
+        <button onclick="applyFilter()">Filter</button>
+        <button onclick="exportExcel()">Export Excel</button>
+    </div>
+
+</div>
+
+<table>
+<thead>
+<tr>
+    <th>Date</th>
+    <th>Time</th>
+    <th>Username</th>
+    <th>First Name</th>
+    <th>Last Name</th>
+    <th>Group</th>
+    <th>Subject</th>
+    <th>Level</th>
+    <th>Problems</th>
+    <th>Notes</th>
+</tr>
+</thead>
+<tbody id="data"></tbody>
+</table>
+
+<script>
+const API = "http://127.0.0.1:8000";
+let reports = [];
+
+function goBack() {
+    window.location.href = "dashboard.html";
+}
+
+function clean(v) {
+    if (!v) return "";
+    return v.toString()
+        .replace(/"/g, '""')
+        .replace(/\r?\n/g, " ");
+}
+
+async function loadGroups() {
+    const res = await fetch(API + "/groups/active");
+    const groups = await res.json();
+    const g = document.getElementById("groupFilter");
+    g.innerHTML = `<option value="">All</option>`;
+    groups.forEach(gr => {
+        const opt = document.createElement("option");
+        opt.value = gr.group_name;
+        opt.textContent = gr.group_name;
+        g.appendChild(opt);
+    });
+}
+
+fetch(API + "/reports")
+.then(r => r.json())
+.then(data => {
+    reports = data;
+    render(data);
+});
+
+function render(rows) {
+    const tbody = document.getElementById("data");
+    tbody.innerHTML = "";
+
+    rows.forEach(r => {
+        tbody.innerHTML += `
+        <tr>
+            <td>${r.date}</td>
+            <td>${r.time}</td>
+            <td>${r.username}</td>
+            <td>${r.first_name || ""}</td>
+            <td>${r.last_name || ""}</td>
+            <td>${r.group_name}</td>
+            <td>${r.subject}</td>
+            <td>${r.level}</td>
+            <td>${r.problems}</td>
+            <td>${r.notes}</td>
+        </tr>`;
+    });
+}
+
+function applyFilter() {
+    const g = groupFilter.value;
+    const s = subjectFilter.value;
+
+    render(reports.filter(r =>
+        (g === "" || r.group_name === g) &&
+        (s === "" || r.subject === s)
+    ));
+}
+
+function exportExcel() {
+
+    let csv = [
+        "Date",
+        "Time",
+        "Username",
+        "First Name",
+        "Last Name",
+        "Group",
+        "Subject",
+        "Level",
+        "Problems",
+        "Notes"
+    ].join(",") + "\n";
+
+    reports.forEach(r => {
+        csv += [
+            `"${clean(r.date)}"`,
+            `"${clean(r.time)}"`,
+            `"${clean(r.username)}"`,
+            `"${clean(r.first_name)}"`,
+            `"${clean(r.last_name)}"`,
+            `"${clean(r.group_name)}"`,
+            `"${clean(r.subject)}"`,
+            `"${clean(r.level)}"`,
+            `"${clean(r.problems)}"`,
+            `"${clean(r.notes)}"`
+        ].join(",") + "\n";
+    });
+
+    const blob = new Blob([csv], { type:"text/csv;charset=utf-8;" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "feedback_reports.csv";
+    a.click();
+}
+
+loadGroups();
+</script>
+
+</body>
+</html>

@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>User Management</title>
+
+    <style>
+        body {
+            font-family: Segoe UI;
+            background:#f4f6f9;
+            margin:0;
+        }
+
+        header {
+            background:#2e7d32;
+            color:white;
+            padding:18px 25px;
+            font-size:22px;
+            font-weight:bold;
+        }
+
+        .actions {
+            max-width:950px;
+            margin:15px auto 0;
+        }
+
+        .actions button {
+            padding:8px 18px;
+            background:#9e9e9e;
+            color:white;
+            border:none;
+            border-radius:5px;
+            cursor:pointer;
+        }
+
+        .box {
+            background:white;
+            max-width:950px;
+            margin:15px auto 40px;
+            padding:25px 30px 30px;
+            border-radius:10px;
+        }
+
+        h3 {
+            margin-top:0;
+            margin-bottom:15px;
+        }
+
+        .field {
+            margin-bottom:12px;
+        }
+
+        .field label {
+            font-weight:bold;
+            display:block;
+            margin-bottom:4px;
+        }
+
+        input, select {
+            width:100%;
+            padding:10px;
+        }
+
+        button.action {
+            padding:10px 18px;
+            margin:6px 6px 0 0;
+            border:none;
+            border-radius:5px;
+            cursor:pointer;
+            color:white;
+        }
+
+        .create { background:#2e7d32; }
+        .update { background:#f9a825; }
+        .toggle { background:#1565c0; }
+        .clear  { background:#757575; }
+
+        table {
+            width:100%;
+            border-collapse:collapse;
+            margin-top:25px;
+        }
+
+        th, td {
+            border:1px solid #ccc;
+            padding:8px;
+        }
+
+        th {
+            background:#2e7d32;
+            color:white;
+        }
+
+        tr.selected {
+            background:#e8f5e9;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>User Management</header>
+
+<div class="actions">
+    <button onclick="goBack()">Back</button>
+</div>
+
+<div class="box">
+
+    <h3>User Details</h3>
+
+    <div class="field">
+        <label>Username</label>
+        <input id="u">
+    </div>
+
+    <div class="field">
+        <label>Password</label>
+        <input id="p" placeholder="Leave empty to keep unchanged">
+    </div>
+
+    <div class="field">
+        <label>First Name</label>
+        <input id="f">
+    </div>
+
+    <div class="field">
+        <label>Last Name</label>
+        <input id="l">
+    </div>
+
+    <div class="field">
+        <label>Role</label>
+        <select id="r">
+            <option value="user">User</option>
+            <option value="admin">Admin</option>
+        </select>
+    </div>
+
+    <div class="field">
+        <label>Group</label>
+        <select id="g"></select>
+    </div>
+
+    <button class="action create" onclick="createUser()">Create User</button>
+    <button class="action update" onclick="updateUser()">Update User</button>
+    <button class="action toggle" onclick="toggleUser()">Activate / Deactivate</button>
+    <button class="action clear"  onclick="clearForm()">Clear</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Full Name</th>
+                <th>Role</th>
+                <th>Group</th>
+                <th>Status</th>
+            </tr>
+        </thead>
+        <tbody id="users"></tbody>
+    </table>
+
+</div>
+
+<script>
+const API = "http://127.0.0.1:8000";
+let selectedRow = null;
+let selectedUser = null;
+
+function goBack() {
+    window.location.href = "dashboard.html";
+}
+
+async function loadGroups() {
+    const res = await fetch(API + "/groups/active");
+    const groups = await res.json();
+    g.innerHTML = "";
+    groups.forEach(gr => g.innerHTML += `<option>${gr.group_name}</option>`);
+}
+
+async function loadUsers() {
+    const res = await fetch(API + "/users");
+    const users = await res.json();
+    const t = document.getElementById("users");
+    t.innerHTML = "";
+
+    users.forEach(u => {
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${u.username}</td>
+            <td>${(u.first_name || "")} ${(u.last_name || "")}</td>
+            <td>${u.role}</td>
+            <td>${u.group_name}</td>
+            <td>${u.is_active ? "ACTIVE" : "DISABLED"}</td>
+        `;
+        row.onclick = () => selectUser(row, u);
+        t.appendChild(row);
+    });
+}
+
+function selectUser(row, user) {
+    if (selectedRow) selectedRow.classList.remove("selected");
+    selectedRow = row;
+    selectedUser = user;
+    row.classList.add("selected");
+
+    u.value = user.username;
+    u.disabled = true;
+    f.value = user.first_name || "";
+    l.value = user.last_name || "";
+    r.value = user.role;
+    g.value = user.group_name;
+    p.value = "";
+}
+
+async function createUser() {
+    if (!u.value || !p.value) {
+        alert("Username and password are required");
+        return;
+    }
+
+    await fetch(API + "/users/create", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+            username:u.value,
+            password:p.value,
+            first_name:f.value,
+            last_name:l.value,
+            role:r.value,
+            group:g.value
+        })
+    });
+
+    alert("User created");
+    clearForm();
+    loadUsers();
+}
+
+async function updateUser() {
+    if (!selectedUser) {
+        alert("Select a user first");
+        return;
+    }
+
+    await fetch(API + "/users/update", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+            username:u.value,
+            password:p.value,
+            first_name:f.value,
+            last_name:l.value,
+            role:r.value,
+            group:g.value
+        })
+    });
+
+    alert("User updated");
+    clearForm();
+    loadUsers();
+}
+
+async function toggleUser() {
+    if (!selectedUser) {
+        alert("Select a user first");
+        return;
+    }
+
+    await fetch(API + "/users/toggle", {
+        method:"POST",
+        headers:{ "Content-Type":"application/json" },
+        body:JSON.stringify({
+            username:selectedUser.username
+        })
+    });
+
+    alert("User status updated");
+    clearForm();
+    loadUsers();
+}
+
+function clearForm() {
+    if (selectedRow) selectedRow.classList.remove("selected");
+    selectedRow = null;
+    selectedUser = null;
+
+    u.value = "";
+    u.disabled = false;
+    p.value = "";
+    f.value = "";
+    l.value = "";
+    r.value = "user";
+    g.selectedIndex = 0;
+}
+
+loadGroups();
+loadUsers();
+</script>
+
+</body>
+</html>

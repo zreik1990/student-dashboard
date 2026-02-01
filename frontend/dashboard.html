@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Student Dashboard</title>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            font-family: "Segoe UI", Arial;
+            background: #f4f6f9;
+            margin: 0;
+        }
+
+        header {
+            background: #2e7d32;
+            color: white;
+            padding: 20px 30px;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 40px auto;
+            background: white;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .info {
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .info span {
+            font-weight: bold;
+        }
+
+        button {
+            display: block;
+            width: 360px;
+            padding: 14px;
+            margin: 12px 0;
+            font-size: 16px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            background: #2e7d32;
+            color: white;
+        }
+
+        button:hover {
+            background: #256628;
+        }
+
+        .admin {
+            background: #1565c0;
+        }
+
+        .admin:hover {
+            background: #0d47a1;
+        }
+
+        .logout {
+            background: #b71c1c;
+        }
+
+        .logout:hover {
+            background: #8e0000;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    Student Dashboard
+</header>
+
+<div class="container">
+
+    <div class="info">
+        👤 User: <span id="username"></span><br>
+        🏫 Group: <span id="group"></span><br>
+        🔐 Role: <span id="role"></span>
+    </div>
+
+    <!-- ADMIN ONLY -->
+    <button id="usersBtn" class="admin" style="display:none"
+            onclick="goUsers()">👥 User Management</button>
+
+    <button id="groupsBtn" class="admin" style="display:none"
+            onclick="goGroups()">🏷 Group Management</button>
+
+    <button id="auditBtn" class="admin" style="display:none"
+            onclick="goAudit()">📋 Audit Log</button>
+
+    <button id="reportsBtn" class="admin" style="display:none"
+            onclick="goReports()">📊 Reports</button>
+
+    <!-- ALL USERS -->
+    <button onclick="goFeedback()">📝 Submit Feedback</button>
+
+    <button class="logout" onclick="logout()">🚪 Logout</button>
+
+</div>
+
+<script>
+    // ======================================================
+    // AUTH CHECK
+    // ======================================================
+    const token = localStorage.getItem("token");
+    const username = localStorage.getItem("username");
+    const role = localStorage.getItem("role");
+    const group = localStorage.getItem("group");
+
+    if (!token || !username) {
+        window.location.href = "login.html";
+    }
+
+    document.getElementById("username").innerText = username;
+    document.getElementById("group").innerText = group;
+    document.getElementById("role").innerText = role;
+
+    // ======================================================
+    // ADMIN VISIBILITY
+    // ======================================================
+    if (role === "admin") {
+        document.getElementById("usersBtn").style.display = "block";
+        document.getElementById("groupsBtn").style.display = "block";
+        document.getElementById("auditBtn").style.display = "block";
+        document.getElementById("reportsBtn").style.display = "block";
+    }
+
+    // ======================================================
+    // AUDIT LOGGER
+    // ======================================================
+    function audit(action) {
+        fetch("http://127.0.0.1:8000/audit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: username,
+                action: action
+            })
+        });
+    }
+
+    audit("Dashboard opened");
+
+    // ======================================================
+    // NAVIGATION
+    // ======================================================
+    function goFeedback() {
+        audit("Clicked Feedback");
+        window.location.href = "feedback.html";
+    }
+
+    function goUsers() {
+        audit("Clicked User Management");
+        window.location.href = "users.html";
+    }
+
+    function goGroups() {
+        audit("Clicked Group Management");
+        window.location.href = "groups.html";
+    }
+
+    function goAudit() {
+        audit("Opened Audit Log");
+        window.location.href = "audit.html";
+    }
+
+    function goReports() {
+        audit("Opened Reports");
+        window.location.href = "reports.html";
+    }
+
+    function logout() {
+        audit("User logged out");
+        fetch("http://127.0.0.1:8000/logout", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ username: username })
+        });
+        localStorage.clear();
+        window.location.href = "login.html";
+    }
+</script>
+
+</body>
+</html>

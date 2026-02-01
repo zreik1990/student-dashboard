@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Audit Log</title>
+
+    <style>
+        body {
+            font-family: Segoe UI;
+            background:#f4f6f9;
+            margin:0;
+        }
+
+        header {
+            background:#2e7d32;
+            color:white;
+            padding:18px 25px;
+            font-size:22px;
+            font-weight:bold;
+        }
+
+        .actions {
+            max-width:95%;
+            margin:15px auto 0;
+        }
+
+        .actions button {
+            padding:8px 18px;
+            background:#9e9e9e;
+            color:white;
+            border:none;
+            border-radius:5px;
+            cursor:pointer;
+        }
+
+        .actions button:hover {
+            background:#7d7d7d;
+        }
+
+        table {
+            width:95%;
+            margin:20px auto;
+            border-collapse:collapse;
+            background:white;
+        }
+
+        th, td {
+            border:1px solid #ccc;
+            padding:10px;
+            font-size:14px;
+        }
+
+        th {
+            background:#2e7d32;
+            color:white;
+        }
+    </style>
+</head>
+
+<body>
+
+<header>
+    Audit Log
+</header>
+
+<div class="actions">
+    <button onclick="goBack()">Back</button>
+</div>
+
+<table>
+<thead>
+<tr>
+    <th>Date & Time</th>
+    <th>User</th>
+    <th>Action</th>
+</tr>
+</thead>
+<tbody id="log"></tbody>
+</table>
+
+<script>
+function goBack() {
+    window.location.href = "dashboard.html";
+}
+
+fetch("http://127.0.0.1:8000/audit")
+.then(res => res.json())
+.then(data => {
+    const tbody = document.getElementById("log");
+    data.forEach(row => {
+        tbody.innerHTML += `
+        <tr>
+            <td>${row.timestamp}</td>
+            <td>${row.username}</td>
+            <td>${row.action}</td>
+        </tr>`;
+    });
+});
+</script>
+
+</body>
+</html>
