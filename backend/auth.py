@@ -1,27 +1,38 @@
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 from passlib.context import CryptContext
-from jose import jwt
-from datetime import datetime, timedelta
+from sqlalchemy.orm import Session
 
-SECRET_KEY = "CHANGE_ME_123456"
-ALGORITHM = "HS256"
+from database import SessionLocal
+from models import User
 
-pwd_context = CryptContext(
-    schemes=["pbkdf2_sha256"],
-    deprecated="auto"
-)
+auth_router = APIRouter(prefix="/auth", tags=["Auth"])
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
-def hash_password(password: str) -> str:
-    return pwd_context.hash(password)
+class LoginRequest(BaseModel):
+    username: str
+    password: str
 
 
-def verify_password(password: str, hashed: str) -> bool:
-    return pwd_context.verify(password, hashed)
+@auth_router.post("/login")
+def login(data: LoginRequest):
+    db: Session = SessionLocal()
 
+    user = db.query(User).filter(User.username == data.username).first()
 
-def create_token(username: str) -> str:
-    payload = {
-        "sub": username,
-        "exp": datetime.utcnow() + timedelta(hours=8)
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if not pwd_context.verify(data.password, user.password):
+        raise HTTPException(status_code=401, detail="Invalid credentials")
+
+    if not user.is_active:
+        raise HTTPException(status_code=403, detail="User is disabled")
+
+    return {
+        "username": user.username,
+        "role": user.role,
+        "token": "dummy-token-for-now"
     }
-    return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
