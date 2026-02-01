@@ -6,32 +6,57 @@
     <style>
         body {
             font-family: Segoe UI;
-            background: #f4f6f9;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
+            background:#f4f6f9;
+            display:flex;
+            justify-content:center;
+            align-items:center;
+            height:100vh;
+            margin:0;
         }
 
         .box {
-            background: white;
-            padding: 35px;
-            width: 360px;
-            border-radius: 10px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            background:white;
+            padding:35px;
+            width:350px;
+            border-radius:10px;
+            box-shadow:0 0 10px rgba(0,0,0,0.1);
         }
 
-        input, button {
-            width: 100%;
-            padding: 12px;
-            margin-top: 10px;
+        h2 {
+            margin-top:0;
+            text-align:center;
+        }
+
+        label {
+            font-weight:bold;
+        }
+
+        input {
+            width:100%;
+            padding:10px;
+            margin-top:6px;
+            margin-bottom:15px;
         }
 
         button {
-            background: #2e7d32;
-            color: white;
-            border: none;
-            border-radius: 5px;
+            width:100%;
+            padding:12px;
+            background:#2e7d32;
+            color:white;
+            border:none;
+            border-radius:5px;
+            cursor:pointer;
+            font-size:16px;
+        }
+
+        button:hover {
+            background:#256628;
+        }
+
+        .error {
+            color:red;
+            margin-top:10px;
+            text-align:center;
         }
     </style>
 </head>
@@ -39,47 +64,55 @@
 <body>
 
 <div class="box">
-    <h2>Student Dashboard</h2>
+    <h2>Login</h2>
 
-    <input id="username" placeholder="Username">
-    <input id="password" type="password" placeholder="Password">
+    <label>Username</label>
+    <input id="username">
 
-    <button onclick="login()">Login</button>
+    <label>Password</label>
+    <input id="password" type="password">
 
-    <div id="error" style="color:red;margin-top:10px;"></div>
+    <!-- IMPORTANT: type="button" -->
+    <button type="button" onclick="login()">Login</button>
+
+    <div class="error" id="error"></div>
 </div>
 
 <script>
+/* ONLINE BACKEND URL */
+const API = "https://student-dashboard-iozf.onrender.com";
+
 async function login() {
+    document.getElementById("error").innerText = "";
 
-    const res = await fetch("https://student-dashboard-iozf.onrender.com", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-            username: document.getElementById("username").value,
-            password: document.getElementById("password").value
-        })
-    });
+    try {
+        const res = await fetch(API + "/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                username: document.getElementById("username").value,
+                password: document.getElementById("password").value
+            })
+        });
 
-    const data = await res.json();
+        if (!res.ok) {
+            document.getElementById("error").innerText = "Invalid username or password";
+            return;
+        }
 
-    if (!res.ok) {
-        document.getElementById("error").innerText =
-            data.detail || "Login failed";
-        return;
+        const data = await res.json();
+
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("username", data.username);
+        localStorage.setItem("role", data.role);
+
+        window.location.href = "dashboard.html";
+
+    } catch (e) {
+        document.getElementById("error").innerText = "Cannot connect to server";
     }
-
-    localStorage.setItem("token", data.token);
-    localStorage.setItem("username", data.username);
-    localStorage.setItem("role", data.role);
-    localStorage.setItem("group", data.group);
-
-    window.location.href = "dashboard.html";
 }
 </script>
 
 </body>
 </html>
-
-
-
